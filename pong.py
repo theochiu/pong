@@ -7,7 +7,7 @@ HEIGHT = 30
 WIDTH = 120
 CSI = "\033["
 # CSI = "\e["
-TESTING = False
+TESTING = True
 
 # global variables (yes consider them harmful)
 
@@ -610,27 +610,47 @@ def gameloop():
 		right_paddle_upper = RIGHT_PADDLE_Y + 2 
 
 		# bounce left
-		if BALL_X + DX <= 0 and BALL_Y >= left_paddle_lower and BALL_Y <= left_paddle_upper:
+		if TESTING and BALL_X + DX <= 0:
+			DX = -DX
+
+		elif BALL_X + DX <= 0 and BALL_Y >= left_paddle_lower and BALL_Y <= left_paddle_upper and not TESTING:
 			# DX = -DX
-			# lets change velocity based on where it hit the paddle
+			total_v = abs(DX) + abs(DY)
 
 			# dead center
 			if BALL_Y == LEFT_PADDLE_Y:
-				total_v = abs(DX) + abs(DY)
 				DX = total_v
 				DY = 0
 
 			# high -> up and to the right
 			elif BALL_Y < LEFT_PADDLE_Y:
-				total_v = abs(DX) + abs(DY)
 				DX = total_v // 2
 				DY = -(total_v - DX) + 1
 
 			# low -> down and to the right
 			else:
-				total_v = abs(DX) + abs(DY)
 				DX = total_v // 2
 				DY = total_v - DX + 1
+
+		# bounce right
+		elif BALL_X + DX + 2 >= WIDTH and BALL_Y >= right_paddle_lower and BALL_Y <= right_paddle_upper:
+			# DX = -DX
+			total_v = abs(DX) + abs(DY)
+
+			# dead center
+			if BALL_Y == RIGHT_PADDLE_Y:
+				DX = -total_v
+				DY = 0
+
+			# high -> up and to the left
+			elif BALL_Y < RIGHT_PADDLE_Y:
+				DX = -total_v // 2
+				DY = -(total_v - DX + 1)
+
+			# low -> down and to the right
+			else:
+				DX = - total_v // 2
+				DY = total_v - abs(DX) + 1 
 
 		# pass left
 		elif BALL_X + DX <= 0:
@@ -639,10 +659,6 @@ def gameloop():
 			right_score += 1
 			reset = 1
 			continue
-
-		# bounce right
-		elif BALL_X + DX + 2 >= WIDTH and BALL_Y >= right_paddle_lower and BALL_Y <= right_paddle_upper:
-			DX = -DX
 
 		# pass right
 		elif BALL_X + DX + 2 >= WIDTH:
