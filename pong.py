@@ -7,7 +7,19 @@ HEIGHT = 30
 WIDTH = 120
 CSI = "\033["
 # CSI = "\e["
-TESTING = True
+TESTING = False
+
+# global variables (yes consider them harmful)
+
+LEFT_PADDLE_Y = HEIGHT // 2				# defines the CENTER of the paddle
+RIGHT_PADDLE_Y = HEIGHT // 2
+left_score = 0
+right_score = 0
+pause = 0								# sleep amount for animation in gameloop
+BALL_X = 0
+BALL_Y = 0
+DX = -1 * randint(1,3)			# random integer from 0-3 INCLUSIVE (initialize moving left)
+DY = randint(0,3)
 
 global isWindows
 
@@ -100,31 +112,7 @@ def test_key2():
 				print("ctrl-c")
 				quit()
 
-			# time.sleep(1)
 
-			# if not c is None:
-			# 	if c == "c":
-			# 		break
-			# print(c)
-
-def getchar():
-	# Returns a single character from standard input
-	import os
-	ch = ''
-	if os.name == 'nt': # how it works on windows
-		import msvcrt
-		ch = msvcrt.getch()
-	else:
-		import tty, termios, sys
-		fd = sys.stdin.fileno()
-		old_settings = termios.tcgetattr(fd)
-		# try:
-		tty.setraw(sys.stdin.fileno())
-		ch = sys.stdin.read(1)
-		# finally:
-		# termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
-	if ord(ch) == 3: quit() # handle ctrl+C
-	return ch
 
 
 def setpos(x, y):
@@ -185,35 +173,6 @@ def test_2():
 		print("\u001b[0m")
 
 
-def test3():
-	sys.stdout.write("\\033[XXm")
-
-	for i in range(30,37+1):
-		sys.stdout.write(("\033[%dm%d\t\t\033[%dm%d" % (i,i,i+60,i+60)))
-
-	sys.stdout.write("\033[39m\\033[39m - Reset colour")
-	sys.stdout.write("\\033[2K - Clear Line")
-	sys.stdout.write("\\033[<L>;<C>H OR \\033[<L>;<C>f puts the cursor at line L and column C.")
-	sys.stdout.write("\\033[<N>A Move the cursor up N lines")
-	sys.stdout.write("\\033[<N>B Move the cursor down N lines")
-	sys.stdout.write("\\033[<N>C Move the cursor forward N columns")
-	sys.stdout.write("\\033[<N>D Move the cursor backward N columns")
-	sys.stdout.write("\\033[2J Clear the screen, move to (0,0)")
-	sys.stdout.write("\\033[K Erase to end of line")
-	sys.stdout.write("\\033[s Save cursor position")
-	sys.stdout.write("\\033[u Restore cursor position")
-	sys.stdout.write(" ")
-	sys.stdout.write("\\033[4m  Underline on")
-	sys.stdout.write("\\033[24m Underline off")
-	sys.stdout.write("\\033[1m  Bold on")
-	sys.stdout.write("\\033[21m Bold off")
-
-def test_getchar():
-	while 1:
-		ch = getchar()
-		print ('You pressed %c (%i)' % (ch, ord(ch)))
-
-
 def draw_white(x, y):
 	draw_color(x, y, 0x0f)
 
@@ -271,8 +230,6 @@ def draw_score(side, num):
 
 	# digit zero
 	if num == 0:
-
-
 		# left bar
 		draw_white(x-1,y-2)
 		draw_white(x-1,y-1)
@@ -343,7 +300,6 @@ def draw_score(side, num):
 		draw_white(x+2, y+1)
 
 	elif num == 4:
-
 		# middle bar
 		draw_white(x-1, y)
 		draw_white(x, y)
@@ -382,7 +338,6 @@ def draw_score(side, num):
 		draw_white(x+2, y+1)
 
 	elif num == 6:
-
 		# top bar
 		draw_white(x, y-2)
 		draw_white(x+1, y-2)
@@ -405,7 +360,6 @@ def draw_score(side, num):
 		draw_white(x+1, y+2)
 
 	elif num == 7:
-
 		# right bar
 		draw_white(x+2,y-2)
 		draw_white(x+2,y-1)
@@ -419,7 +373,6 @@ def draw_score(side, num):
 		draw_white(x+1, y-2)
 
 	elif num == 8:
-
 		# left bar
 		draw_white(x-1,y-2)
 		draw_white(x-1,y-1)
@@ -446,7 +399,6 @@ def draw_score(side, num):
 
 
 	elif num == 9:
-
 		# middle bar
 		draw_white(x-1, y)
 		draw_white(x, y)
@@ -467,14 +419,8 @@ def draw_score(side, num):
 		draw_white(x+1, y-2)
 
 
-# defines the CENTER of the paddle
-
-LEFT_PADDLE_Y = HEIGHT // 2
-RIGHT_PADDLE_Y = HEIGHT // 2
 
 def draw_paddles():
-	# draw left paddle
-
 	if TESTING:
 		for y in range(HEIGHT):
 			draw_white(0, y)
@@ -492,9 +438,6 @@ def draw_paddles():
 	draw_white(WIDTH - 1, y)
 	draw_white(WIDTH - 1, y+1)
 	draw_white(WIDTH - 1, y+2)
-
-left_score = 0
-right_score = 0
 
 def blackout():
 	fgbg(0)					# color black
@@ -527,19 +470,14 @@ def init_pong():
 	draw_score(0, left_score)
 	draw_score(1, right_score)
 
-	# init ball
-	# init_ball("LEFT")
-
-BALL_X = 0
-BALL_Y = 0
-DX = -1 * randint(1,3)			# random integer from 0-3 INCLUSIVE (initialize moving left)
-DY = randint(0,3)
 
 
 
 def init_ball(side):
-	global BALL_X 
-	global BALL_Y
+	global BALL_X, BALL_Y, DX, DY
+
+	DX = -1 * randint(1,3)
+	DY = randint(0,3)
 
 	# SET SPAWN LOCATION
 	x = WIDTH // 2
@@ -549,6 +487,7 @@ def init_ball(side):
 		x -= 5 
 	else:
 		x += 5
+		DX = randint(1,3)
 
 	BALL_X = x
 	BALL_Y = y
@@ -591,9 +530,9 @@ def move_paddle(side, dtion):
 		elif side == "RIGHT":
 			RIGHT_PADDLE_Y += 1
 
-pause = 0
 
 def gameloop():
+	reset = 0
 
 	blackout()
 
@@ -613,6 +552,13 @@ def gameloop():
 
 	while 1:
 		# PAINT SCREEN
+
+		if reset:
+			reset = 0
+			blackout()
+			init_ball("RIGHT")
+
+
 		init_pong()
 
 		# CHARACTER INPUT
@@ -635,23 +581,53 @@ def gameloop():
 
 		# MOVE BALL
 
-		global DX, DY, BALL_X, BALL_Y, pause
+		global DX, DY, BALL_X, BALL_Y, pause, right_score, left_score
 
-
-		if pause != 4:
+		# velocity delay
+		if pause != 2:
 			pause += 1
 			continue
-
 		else:
 			pause = 0 
 
 		# bounce of walls for now
-		if BALL_X + DX <= 0 or BALL_X + DX + 2 >= WIDTH:
-			DX = -DX
+		# if BALL_X + DX <= 0 or BALL_X + DX + 1 >= WIDTH:
+		# 	DX = -DX
 
 		if BALL_Y + DY < 0 or BALL_Y + DY >= HEIGHT:
 			DY = -DY
 
+		# calculate paddle edges 
+		left_paddle_lower = LEFT_PADDLE_Y - 2
+		left_paddle_upper = LEFT_PADDLE_Y + 2
+		right_paddle_lower = RIGHT_PADDLE_Y - 2
+		right_paddle_upper = RIGHT_PADDLE_Y + 2 
+
+		# bounce left
+		if BALL_X + DX <= 0 and BALL_Y >= left_paddle_lower and BALL_Y <= left_paddle_upper:
+			DX = -DX
+
+		# pass left
+		elif BALL_X + DX <= 0:
+			draw_black(BALL_X, BALL_Y)
+			draw_black(BALL_X+1, BALL_Y)
+			right_score += 1
+			reset = 1
+			continue
+
+		# bounce right
+		elif BALL_X + DX + 2 >= WIDTH and BALL_Y >= right_paddle_lower and BALL_Y <= right_paddle_upper:
+			DX = -DX
+
+		# pass right
+		elif BALL_X + DX + 2 >= WIDTH:
+			draw_black(BALL_X, BALL_Y)
+			draw_black(BALL_X+1, BALL_Y)
+			left_score += 1
+			reset = 1
+			continue
+
+		# nonbounce movement
 		new_x = BALL_X + DX 
 		new_y = BALL_Y + DY
 
