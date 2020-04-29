@@ -483,12 +483,14 @@ def init_ball(side):
 	x = WIDTH // 2
 	y = HEIGHT // 2 - 5
 
-	if side == "LEFT":
-		x -= 5 
-	else:
+	if side != "LEFT":
 		x += 5
 		DX = randint(1,3)
 
+	else:
+		x -= 5 
+
+		
 	BALL_X = x
 	BALL_Y = y
 
@@ -554,9 +556,13 @@ def gameloop():
 		# PAINT SCREEN
 
 		if reset:
-			reset = 0
 			blackout()
-			init_ball("RIGHT")
+			if reset == 1:
+				init_ball("RIGHT")
+			else:
+				init_ball("LEFT")
+
+			reset = 0
 
 
 		init_pong()
@@ -605,7 +611,26 @@ def gameloop():
 
 		# bounce left
 		if BALL_X + DX <= 0 and BALL_Y >= left_paddle_lower and BALL_Y <= left_paddle_upper:
-			DX = -DX
+			# DX = -DX
+			# lets change velocity based on where it hit the paddle
+
+			# dead center
+			if BALL_Y == LEFT_PADDLE_Y:
+				total_v = abs(DX) + abs(DY)
+				DX = total_v
+				DY = 0
+
+			# high -> up and to the right
+			elif BALL_Y < LEFT_PADDLE_Y:
+				total_v = abs(DX) + abs(DY)
+				DX = total_v // 2
+				DY = -(total_v - DX) + 1
+
+			# low -> down and to the right
+			else:
+				total_v = abs(DX) + abs(DY)
+				DX = total_v // 2
+				DY = total_v - DX + 1
 
 		# pass left
 		elif BALL_X + DX <= 0:
@@ -624,7 +649,7 @@ def gameloop():
 			draw_black(BALL_X, BALL_Y)
 			draw_black(BALL_X+1, BALL_Y)
 			left_score += 1
-			reset = 1
+			reset = 2
 			continue
 
 		# nonbounce movement
