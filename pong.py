@@ -1,13 +1,111 @@
 
 import time, sys
+from random import randint
 
 # constants
 HEIGHT = 30
-WIDTH = 118
+WIDTH = 120
 CSI = "\033["
+# CSI = "\e["
 TESTING = True
 
+global isWindows
 
+isWindows = False
+try:
+	from win32api import STD_INPUT_HANDLE
+	from win32console import GetStdHandle, KEY_EVENT, ENABLE_ECHO_INPUT, ENABLE_LINE_INPUT, ENABLE_PROCESSED_INPUT
+	isWindows = True
+except ImportError as e:
+	import sys
+	import select
+	import termios
+
+
+class KeyPoller():
+	def __enter__(self):
+		global isWindows
+		if isWindows:
+			self.readHandle = GetStdHandle(STD_INPUT_HANDLE)
+			self.readHandle.SetConsoleMode(ENABLE_LINE_INPUT|ENABLE_ECHO_INPUT|ENABLE_PROCESSED_INPUT)
+
+			self.curEventLength = 0
+			self.curKeysLength = 0
+
+			self.capturedChars = []
+		else:
+			# Save the terminal settings
+			self.fd = sys.stdin.fileno()
+			self.new_term = termios.tcgetattr(self.fd)
+			self.old_term = termios.tcgetattr(self.fd)
+
+			# New terminal setting unbuffered
+			self.new_term[3] = (self.new_term[3] & ~termios.ICANON & ~termios.ECHO)
+			termios.tcsetattr(self.fd, termios.TCSAFLUSH, self.new_term)
+
+		return self
+
+	def __exit__(self, type, value, traceback):
+		if isWindows:
+			pass
+		else:
+			termios.tcsetattr(self.fd, termios.TCSAFLUSH, self.old_term)
+
+	def poll(self):
+		if isWindows:
+			if not len(self.capturedChars) == 0:
+				return self.capturedChars.pop(0)
+
+			eventsPeek = self.readHandle.PeekConsoleInput(10000)
+
+			if len(eventsPeek) == 0:
+				return None
+
+			if not len(eventsPeek) == self.curEventLength:
+				for curEvent in eventsPeek[self.curEventLength:]:
+					if curEvent.EventType == KEY_EVENT:
+						if ord(curEvent.Char) == 0 or not curEvent.KeyDown:
+							pass
+						else:
+							curChar = str(curEvent.Char)
+							self.capturedChars.append(curChar)
+				self.curEventLength = len(eventsPeek)
+
+			if not len(self.capturedChars) == 0:
+				return self.capturedChars.pop(0)
+			else:
+				return None
+		else:
+			dr,dw,de = select.select([sys.stdin], [], [], 0)
+			if not dr == []:
+				return sys.stdin.read(1)
+			return None
+
+# END STACKOVEFLOW
+
+def test_key2():
+	with KeyPoller() as keyPoller:
+		while True:
+			c = keyPoller.poll()
+
+			if c:
+				setpos(0,6)
+				sys.stdout.write(str(c))
+
+			else:	
+				setpos(0, 5)
+				sys.stdout.write(str(c))
+
+			if c and ord(c) == 3: 
+				print("ctrl-c")
+				quit()
+
+			# time.sleep(1)
+
+			# if not c is None:
+			# 	if c == "c":
+			# 		break
+			# print(c)
 
 def getchar():
 	# Returns a single character from standard input
@@ -20,11 +118,11 @@ def getchar():
 		import tty, termios, sys
 		fd = sys.stdin.fileno()
 		old_settings = termios.tcgetattr(fd)
-		try:
-			tty.setraw(sys.stdin.fileno())
-			ch = sys.stdin.read(1)
-		finally:
-			termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+		# try:
+		tty.setraw(sys.stdin.fileno())
+		ch = sys.stdin.read(1)
+		# finally:
+		# termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
 	if ord(ch) == 3: quit() # handle ctrl+C
 	return ch
 
@@ -117,14 +215,17 @@ def test_getchar():
 
 
 def draw_white(x, y):
-	setpos(x, y)
-	fgbg(0x0f)
-	sys.stdout.write(' ')
-	sys.stdout.flush()
+	draw_color(x, y, 0x0f)
 
 def draw_black(x, y):
+	draw_color(x, y, 0x00)
+
+def draw_blue(x, y):
+	draw_color(x, y, 4)
+
+def draw_color(x, y, color):
 	setpos(x, y)
-	fgbg(0x00)
+	fgbg(color)
 	sys.stdout.write(' ')
 	sys.stdout.flush()
 
@@ -392,16 +493,19 @@ def draw_paddles():
 	draw_white(WIDTH - 1, y+1)
 	draw_white(WIDTH - 1, y+2)
 
-def init_pong():
-	''' initialize the screen for the game'''
-	# make everything black
+left_score = 0
+right_score = 0
+
+def blackout():
 	fgbg(0)					# color black
 	for y in range(HEIGHT):
 		setpos(0,y)
 		for x in range(WIDTH):
 			sys.stdout.write(" ")
 
-
+def init_pong():
+	''' initialize the screen for the game'''
+	
 	# draw dotted line (middle)
 	x = WIDTH // 2
 	for y in range(HEIGHT):
@@ -423,8 +527,38 @@ def init_pong():
 	draw_paddles()
 
 	# draw score (zeroes)
-	draw_score(0, 0)
-	draw_score(1, 0)
+	draw_score(0, left_score)
+	draw_score(1, right_score)
+
+	# init ball
+	# init_ball("LEFT")
+
+BALL_X = 0
+BALL_Y = 0
+DX = -1 * randint(0,2)			# random integer from 0-3 INCLUSIVE (initialize moving left)
+DY = randint(0,2)
+
+
+
+def init_ball(side):
+	global BALL_X 
+	global BALL_Y
+
+	# SET SPAWN LOCATION
+	x = WIDTH // 2
+	y = HEIGHT // 2 - 5
+
+	if side == "LEFT":
+		x -= 5 
+	else:
+		x += 5
+
+	BALL_X = x
+	BALL_Y = y
+
+	# DRAW BALL
+	draw_blue(x,y)
+	draw_blue(x+1,y)
 
 
 def move_paddle(side, dtion):
@@ -460,10 +594,26 @@ def move_paddle(side, dtion):
 		elif side == "RIGHT":
 			RIGHT_PADDLE_Y += 1
 
+pause = 0
+
 def gameloop():
 
+	blackout()
+	init_ball("LEFT")
+
 	while 1:
-		ch = getchar()
+		# PAINT SCREEN
+		init_pong()
+
+		# CHARACTER INPUT
+		ch = None
+		with KeyPoller() as keyPoller:
+			for i in range(5000):
+				c = keyPoller.poll()
+				if c:
+					ch = c	
+
+		# MOVE PADDLES
 		if ch == "w" and not TESTING:
 			move_paddle("LEFT", "UP")
 		elif ch == "s" and not TESTING:
@@ -473,13 +623,44 @@ def gameloop():
 		elif ch == "l":
 			move_paddle("RIGHT", "DOWN")
 
+		# MOVE BALL
+
+		global DX, DY, BALL_X, BALL_Y, pause
+
+
+		if pause != 2:
+			pause += 1
+			continue
+
+		else:
+			pause = 0 
+
+		# bounce of walls for now
+		if BALL_X + DX <= 0 or BALL_X + DX + 2 >= WIDTH:
+			DX = -DX
+
+		if BALL_Y + DY < 0 or BALL_Y + DY >= HEIGHT:
+			DY = -DY
+
+		new_x = BALL_X + DX 
+		new_y = BALL_Y + DY
+
+		draw_black(BALL_X, BALL_Y)
+		draw_black(BALL_X+1, BALL_Y)
+
+		draw_blue(new_x, new_y)
+		draw_blue(new_x+1, new_y)
+
+		BALL_X = new_x
+		BALL_Y = new_y
 
 
 if __name__ == '__main__':
 
-	init_pong()
+	# init_pong()
 
 	gameloop()
+	# test_key2()
 
 	# draw_paddles()	
 
