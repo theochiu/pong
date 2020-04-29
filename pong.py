@@ -520,9 +520,6 @@ def init_pong():
 			sys.stdout.write(' ')
 			sys.stdout.flush()
 
-
-
-
 	# draw paddles (check testing)
 	draw_paddles()
 
@@ -535,8 +532,8 @@ def init_pong():
 
 BALL_X = 0
 BALL_Y = 0
-DX = -1 * randint(0,2)			# random integer from 0-3 INCLUSIVE (initialize moving left)
-DY = randint(0,2)
+DX = -1 * randint(1,3)			# random integer from 0-3 INCLUSIVE (initialize moving left)
+DY = randint(0,3)
 
 
 
@@ -599,6 +596,19 @@ pause = 0
 def gameloop():
 
 	blackout()
+
+	fgbg(9)
+	setpos(WIDTH//3 +5 , HEIGHT//4 * 3)
+	sys.stdout.write("press space to play")
+	sys.stdout.flush()
+
+	with KeyPoller() as keyPoller:
+		while 1:
+			char = keyPoller.poll()
+			if char == " ":
+				break
+
+	blackout()
 	init_ball("LEFT")
 
 	while 1:
@@ -628,7 +638,7 @@ def gameloop():
 		global DX, DY, BALL_X, BALL_Y, pause
 
 
-		if pause != 2:
+		if pause != 4:
 			pause += 1
 			continue
 
